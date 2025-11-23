@@ -76,6 +76,21 @@ class NotesController
         ]);
     }
 
+    function edit(){
+
+        $note = $this->db->query('select * from notes where id = :id', [
+            'id' => $_GET['id']
+        ])->findOrFail();
+
+        authorize($note['user_id'] === $this->currentUserId);
+
+        view("notes/edit.view.php", [
+            'heading' => 'Edit Note',
+            'errors' => [],
+            'note' => $note
+        ]);
+    }
+
 //    function delete(): void
 //    {
 //
