@@ -1,25 +1,21 @@
 <?php
 
 namespace Http\controllers\notes;
-use Core\App;
 use Core\Authenticator;
-use Core\DAO\NoteDaoImpl;
-use Core\Database;
+use Core\DAO\NoteDao;
+use Core\DAO\NoteDaoFactory;
 use Core\Validator;
 class NotesController
 {
-    private $db;
-
-    private $noteDao;
+    private NoteDao $noteDao;
     private Authenticator $auth;
     private ?int $currentUserId;
 
     public function __construct()
    {
-       $this->db = App::resolve(Database::class);
        $this->auth = new Authenticator();
        $this->currentUserId = $this->auth->getCurrentUserId();
-       $this->noteDao = new NoteDaoImpl();
+       $this->noteDao = NoteDaoFactory::create();
    }
 
    function index(): void
