@@ -37,7 +37,10 @@ class NoteDaoImpl implements NoteDao
 
     public function update(int $id, string $body): void
     {
-        // TODO: Implement update() method.
+        $this->db->query('update notes set body = :body where id = :id', [
+            'id' => $id,
+            'body' => $body
+        ]);
     }
 
     public function delete(int $id): void
