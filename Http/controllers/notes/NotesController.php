@@ -3,11 +3,14 @@
 namespace Http\controllers\notes;
 use Core\App;
 use Core\Authenticator;
+use Core\DAO\NoteDaoImpl;
 use Core\Database;
 use Core\Validator;
 class NotesController
 {
     private $db;
+
+    private $noteDao;
     private Authenticator $auth;
     private ?int $currentUserId;
 
@@ -16,13 +19,12 @@ class NotesController
        $this->db = App::resolve(Database::class);
        $this->auth = new Authenticator();
        $this->currentUserId = $this->auth->getCurrentUserId();
+       $this->noteDao = new NoteDaoImpl();
    }
 
    function index(): void
    {
-       $notes = $this->db->query('select * from notes where user_id = :id', [
-           'id' => $this->currentUserId
-       ])->get();
+       $notes = $this->noteDao->getAllByUserId($this->currentUserId);
 
        view("notes/index.view.php", [
            'heading' => 'My Notes',
