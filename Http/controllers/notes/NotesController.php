@@ -75,9 +75,7 @@ class NotesController
 
     function edit(){
 
-        $note = $this->db->query('select * from notes where id = :id', [
-            'id' => $_GET['id']
-        ])->findOrFail();
+        $note = $this->noteDao->findById($_GET['id']);
 
         authorize($note['user_id'] === $this->currentUserId);
 
@@ -91,15 +89,11 @@ class NotesController
     function destroy(): void
     {
 
-        $note = $this->db->query('select * from notes where id = :id', [
-            'id' => $_POST['id']
-        ])->findOrFail();
+        $note = $this->noteDao->findById($_POST['id']);
 
         authorize($note['user_id'] === $this->currentUserId);
 
-        $this->db->query('delete from notes where id = :id', [
-            'id' => $_POST['id']
-        ]);
+        $this->noteDao->delete($_POST['id']);
 
         header('location: /notes');
         exit();

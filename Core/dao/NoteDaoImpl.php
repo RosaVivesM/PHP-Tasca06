@@ -22,7 +22,7 @@ class NoteDaoImpl implements NoteDao
     public function findById(int $id): ?array
     {
         return $this->db->query('select * from notes where id = :id', [
-            'id' => $_GET['id']
+            'id' => $id
         ])->findOrFail();
 
     }
@@ -42,6 +42,8 @@ class NoteDaoImpl implements NoteDao
 
     public function delete(int $id): void
     {
-        // TODO: Implement delete() method.
+        $this->db->query('delete from notes where id = :id', [
+            'id' => $id
+        ]);
     }
 }
