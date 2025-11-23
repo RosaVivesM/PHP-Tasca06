@@ -1,5 +1,9 @@
 <?php
 
+use Http\controllers\notes\NotesController;
+
+$notesController = new NotesController();
+
 $router->get('/', 'index.php');
 $router->get('/about', 'about.php');
 $router->get('/contact', 'contact.php');

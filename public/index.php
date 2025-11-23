@@ -25,7 +25,7 @@ $method = $_POST['_method'] ?? $_SERVER['REQUEST_METHOD'];
 
 try {
     $router->route($uri, $method);
-} catch (ValidationException $exception) {
+} catch (Exception $exception) {
     Session::flash('errors', $exception->errors);
     Session::flash('old', $exception->old);
 

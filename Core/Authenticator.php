@@ -13,9 +13,7 @@ class Authenticator
 
         if ($user) {
             if (password_verify($password, $user['password'])) {
-                $this->login([
-                    'email' => $email
-                ]);
+                $this->login($user);
 
                 return true;
             }
@@ -27,14 +25,19 @@ class Authenticator
     public function login($user)
     {
         $_SESSION['user'] = [
+            'id' => $user['id'],
             'email' => $user['email']
         ];
-
         session_regenerate_id(true);
     }
 
     public function logout()
     {
         Session::destroy();
+    }
+
+    public function getCurrentUserId(): ?int
+    {
+        return Session::get('user')['id'] ?? null;
     }
 }
