@@ -21,13 +21,18 @@ class NoteDaoImpl implements NoteDao
 
     public function findById(int $id): ?array
     {
-        // TODO: Implement findById() method.
-        return [];
+        return $this->db->query('select * from notes where id = :id', [
+            'id' => $_GET['id']
+        ])->findOrFail();
+
     }
 
     public function create(string $body, int $userId): void
     {
-        // TODO: Implement create() method.
+        $this->db->query('INSERT INTO notes(body, user_id) VALUES(:body, :user_id)', [
+            'body' => $body,
+            'user_id' => $userId
+        ]);
     }
 
     public function update(int $id, string $body): void

@@ -55,10 +55,7 @@ class NotesController
             ]);
         }
 
-        $this->db->query('INSERT INTO notes(body, user_id) VALUES(:body, :user_id)', [
-            'body' => $_POST['body'],
-            'user_id' => $this->currentUserId
-        ]);
+        $this->noteDao->create($_POST['body'], $this->currentUserId);
 
         header('location: /notes');
         die();
@@ -66,9 +63,7 @@ class NotesController
 
     function show(){
 
-        $note = $this->db->query('select * from notes where id = :id', [
-            'id' => $_GET['id']
-        ])->findOrFail();
+        $note = $this->noteDao->findById( $_GET['id']);
 
         authorize($note['user_id'] === $this->currentUserId);
 
