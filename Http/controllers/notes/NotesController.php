@@ -4,6 +4,7 @@ namespace Http\controllers\notes;
 use Core\App;
 use Core\Authenticator;
 use Core\Database;
+use Core\Validator;
 class NotesController
 {
     private $db;
@@ -35,6 +36,30 @@ class NotesController
             'heading' => 'Create Note',
             'errors' => []
         ]);
+    }
+
+    function store(){
+
+        $errors = [];
+
+        if (! Validator::string($_POST['body'], 1, 1000)) {
+            $errors['body'] = 'A body of no more than 1,000 characters is required.';
+        }
+
+        if (! empty($errors)) {
+            return view("notes/create.view.php", [
+                'heading' => 'Create Note',
+                'errors' => $errors
+            ]);
+        }
+
+        $this->db->query('INSERT INTO notes(body, user_id) VALUES(:body, :user_id)', [
+            'body' => $_POST['body'],
+            'user_id' => $this->currentUserId
+        ]);
+
+        header('location: /notes');
+        die();
     }
 
 //    function delete(): void
