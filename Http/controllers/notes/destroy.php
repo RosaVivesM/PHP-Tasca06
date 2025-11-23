@@ -1,21 +1,23 @@
 <?php
 
-use Core\App;
-use Core\Database;
+//use Core\App;
+//use Core\Database;
+//
+//$db = App::resolve(Database::class);
 
-$db = App::resolve(Database::class);
+(new \Http\controllers\notes\NotesController())->destroy();
 
-$currentUserId = 1;
-
-$note = $db->query('select * from notes where id = :id', [
-    'id' => $_POST['id']
-])->findOrFail();
-
-authorize($note['user_id'] === $currentUserId);
-
-$db->query('delete from notes where id = :id', [
-    'id' => $_POST['id']
-]);
-
-header('location: /notes');
-exit();
+//$currentUserId = 1;
+//
+//$note = $db->query('select * from notes where id = :id', [
+//    'id' => $_POST['id']
+//])->findOrFail();
+//
+//authorize($note['user_id'] === $currentUserId);
+//
+//$db->query('delete from notes where id = :id', [
+//    'id' => $_POST['id']
+//]);
+//
+//header('location: /notes');
+//exit();

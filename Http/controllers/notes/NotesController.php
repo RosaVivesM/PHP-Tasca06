@@ -91,20 +91,20 @@ class NotesController
         ]);
     }
 
-//    function delete(): void
-//    {
-//
-//        $note = $this->db->query('select * from notes where id = :id', [
-//            'id' => $_POST['id']
-//        ])->findOrFail();
-//
-//        authorize($note['user_id'] === $this->currentUserId);
-//
-//        $this->db->query('delete from notes where id = :id', [
-//            'id' => $_POST['id']
-//        ]);
-//
-//        header('location: /notes');
-//        exit();
-//    }
+    function destroy(): void
+    {
+
+        $note = $this->db->query('select * from notes where id = :id', [
+            'id' => $_POST['id']
+        ])->findOrFail();
+
+        authorize($note['user_id'] === $this->currentUserId);
+
+        $this->db->query('delete from notes where id = :id', [
+            'id' => $_POST['id']
+        ]);
+
+        header('location: /notes');
+        exit();
+    }
 }
