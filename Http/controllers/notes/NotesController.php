@@ -62,6 +62,20 @@ class NotesController
         die();
     }
 
+    function show(){
+
+        $note = $this->db->query('select * from notes where id = :id', [
+            'id' => $_GET['id']
+        ])->findOrFail();
+
+        authorize($note['user_id'] === $this->currentUserId);
+
+        view("notes/show.view.php", [
+            'heading' => 'Note',
+            'note' => $note
+        ]);
+    }
+
 //    function delete(): void
 //    {
 //
