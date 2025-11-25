@@ -54,16 +54,22 @@ class Router
         return $this;
     }
 
-    public function route($uri, $method)
+    public function route($uri,$method)
     {
-        foreach ($this->routes as $route) {
-            if ($route['uri'] === $uri && $route['method'] === strtoupper($method)) {
+        foreach ($this->routes as $route){
+            if ($route['uri'] === $uri && $route['method'] === strtoupper($method)){
+
                 Middleware::resolve($route['middleware']);
 
-                return require base_path('Http/controllers/' . $route['controller']);
+                if (is_array($route['controller'])) {
+                    $controller = new $route['controller'][0]();
+                    $method = $route['controller'][1];
+                    return $controller->$method();
+                }
+
+                return require base_path('Http/controllers/'.$route['controller']);
             }
         }
-
         $this->abort();
     }
 
