@@ -5,7 +5,6 @@ use Core\Authenticator;
 use Core\DAO\NoteDao;
 use Core\DAO\NoteDaoFactory;
 use Core\Validator;
-use Views\vistas\VistaJson;
 
 class NotesController
 {

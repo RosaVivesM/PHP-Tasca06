@@ -35,32 +35,17 @@ if (isset($_GET['PATH_INFO'])) {
 $auth = new Authenticator();
 $isRestfulRequest = $auth->isRestfulRequest();
 
-//if (!$isRestfulRequest) {
-    try {
-        if($isRestfulRequest){
-            (new VistaJson())->imprimir((new SessionController())->get());
-        } else {
-            $router->route($uri, $method);
-        }
-    } catch (Exception $exception) {
-        Session::flash('errors', $exception->errors);
-        Session::flash('old', $exception->old);
-        return redirect($router->previousUrl());
+
+try {
+    if($isRestfulRequest){
+        (new VistaJson())->imprimir((new SessionController())->$method());
+    } else {
+        $router->route($uri, $method);
     }
-//} else {
-////    try {
-////        $vista = new VistaJson();
-////        $respuesta = call_user_func($router->post($uri, returnRoute($uri)));
-////        $vista->imprimir($respuesta);
-////    } catch (Exception $exception) {
-////        $vista = new VistaJson(); // Usar la vista JSON para errores también
-////        $errorResponse = [
-////            'error' => $exception->getMessage(),
-////            'errors' => $exception->errors ?? null,
-////            'old' => $exception->old ?? null,
-////        ];
-////        $vista->imprimir($errorResponse);
-////    }
-//}
+} catch (Exception $exception) {
+    Session::flash('errors', $exception->errors);
+    Session::flash('old', $exception->old);
+    return redirect($router->previousUrl());
+}
 
 Session::unflash();

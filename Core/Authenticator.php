@@ -4,6 +4,7 @@ namespace Core;
 
 use Exception;
 use Firebase\JWT\JWT;
+use JetBrains\PhpStorm\NoReturn;
 use Views\vistas\VistaJson;
 
 class Authenticator
@@ -48,7 +49,8 @@ class Authenticator
 
     }
 
-    public function logout()
+
+    public function logout(): void
     {
 
         setcookie('token', '', time() - 3600, '/'); //eliminar el token de les cookies del navegador
@@ -61,7 +63,6 @@ class Authenticator
 
         Session::destroy();
         header('location: /');
-        exit();
     }
 
     public function getCurrentUserId(): ?int
