@@ -7,7 +7,7 @@ $router->get('/', 'index.php');
 $router->get('/about', 'about.php');
 $router->get('/contact', 'contact.php');
 
-$router->get('/notes', [NotesController::class, 'get'])->only('auth');
+$router->get('/notes', [NotesController::class, 'index'])->only('auth');
 $router->get('/note', [NotesController::class, 'show']);
 $router->delete('/note', [NotesController::class, 'destroy']);
 

@@ -17,9 +17,13 @@ class SessionController
         $this->auth = new Authenticator();
     }
 
-    public function get(): void
+    public function get(): string|bool
     {
         view('session/create.view.php', [
+            'errors' => Session::get('errors')
+        ]);
+
+        return json_encode([
             'errors' => Session::get('errors')
         ]);
 

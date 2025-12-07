@@ -39,7 +39,7 @@ $isRestfulRequest = $auth->isRestfulRequest();
 
 try {
     if($isRestfulRequest){
-        (new VistaJson())->imprimir((new NotesController())->$method());
+        (new VistaJson())->imprimir($router->route($uri, $method));
     } else {
         $router->route($uri, $method);
     }

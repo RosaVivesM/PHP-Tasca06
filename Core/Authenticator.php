@@ -6,7 +6,6 @@ require __DIR__ . '/../vendor/autoload.php';
 use Exception;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use stdClass;
 
 class Authenticator
 {

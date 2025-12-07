@@ -1,6 +1,7 @@
 <?php
 
 namespace Http\controllers\notes;
+ob_start();
 use Core\Authenticator;
 use Core\DAO\NoteDao;
 use Core\DAO\NoteDaoFactory;
@@ -19,7 +20,7 @@ class NotesController
        $this->noteDao = NoteDaoFactory::create();
    }
 
-    function get(): ?array
+    function index(): ?array
     {
 
         if ($this->auth->isRestfulRequest()) {
@@ -43,30 +44,52 @@ class NotesController
         return null;
     }
 
-    function create(): void
+    function create(): ?array
     {
+        if($this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token'])){
+            return ["message" => "Not disponible as a Rest request"];
+        }
+
         view("notes/create.view.php", [
             'heading' => 'Create Note',
             'errors' => []
         ]);
+
+        return null;
     }
 
-    function store(){
+    function store()
+    {
 
         $errors = [];
 
-        if (! Validator::string($_POST['body'], 1, 1000)) {
+        $auth = $this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token']);
+
+        if ($auth) {
+            $raw = file_get_contents('php://input');
+            $data = json_decode($raw, true) ?? [];
+            $body = $data['body'] ?? '';
+        } else {
+            $body = $_POST['body'];
+        }
+
+        if (! Validator::string($body, 1, 1000)) {
             $errors['body'] = 'A body of no more than 1,000 characters is required.';
         }
 
         if (! empty($errors)) {
+            if($auth){
+                return json_decode([
+                    "status" => 422,
+                    "error" => $errors]);
+            }
             return view("notes/create.view.php", [
                 'heading' => 'Create Note',
                 'errors' => $errors
             ]);
         }
 
-        $this->noteDao->create($_POST['body'], $this->currentUserId);
+        $this->noteDao->create($body, $this->currentUserId);
 
         header('location: /notes');
         die();
@@ -91,7 +114,12 @@ class NotesController
         }
     }
 
-    function edit(){
+    function edit(): ?array
+    {
+
+        if($this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token'])){
+            return ["message" => "Not disponible as a Rest request"];
+        }
 
         $note = $this->noteDao->findById($_GET['id']);
 
@@ -102,6 +130,8 @@ class NotesController
             'errors' => [],
             'note' => $note
         ]);
+
+        return null;
     }
 
     function destroy(): void
@@ -149,3 +179,4 @@ class NotesController
 
     }
 }
+ob_end_flush();
