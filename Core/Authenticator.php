@@ -4,21 +4,32 @@ namespace Core;
 
 use Exception;
 use Firebase\JWT\JWT;
+use Views\vistas\VistaJson;
+
 class Authenticator
 {
     private static array $revokedTokens = [];
     private static string $signing_key = "18bcfaba79f47927dd54f7facc221b79f3e7212824e1bb5ef89fc927980ee8a6"; //secret del token
 
-    public function attempt($email, $password)
+    public function attempt($email, $password): array|bool
     {
+
         $user = App::resolve(Database::class)
             ->query('select * from users where email = :email', [
-            'email' => $email
-        ])->find();
+                'email' => $email
+            ])->find();
+
+
 
         if ($user) {
             if (password_verify($password, $user['password'])) {
                 $this->login($user);
+
+                if($this->isRestfulRequest()){
+                    $token = $this->generateToken($user['id'], $user['email']); //creació del token
+
+                    setcookie('token', $token, time() + (60 * 60 * 24), '/'); //guardar el token amb les cookies amb un timeout
+                }
 
                 return true;
             }
@@ -27,17 +38,13 @@ class Authenticator
         return false;
     }
 
-    public function login($user)
+    public function login($user): array
     {
         $_SESSION['user'] = [
             'id' => $user['id'],
             'email' => $user['email']
         ];
         session_regenerate_id(true);
-
-        $token = $this->generateToken($user['id'], $user['email']); //creació del token
-
-        setcookie('token', $token, time() + (60 * 60 * 24), '/'); //guardar el token amb les cookies amb un timeout
 
     }
 
@@ -96,11 +103,34 @@ class Authenticator
 
         try {
             $headers = ['HS256'];
-            $decoded = JWT::decode($token, self::$key, $headers);
+            $decoded = JWT::decode($token, self::$signing_key, $headers);
             $user_id = $decoded->sub;
             return array('success' => true, 'user_id' => $user_id);
         } catch (Exception $e) {
             return array('success' => false, 'error' => $e->getMessage());
         }
     }
+
+    public function isRestfulRequest(): bool
+    {
+
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
+        if (str_contains($accept, 'application/json')) {
+            return true;
+        }
+
+        if (str_contains($contentType, 'application/json')) {
+            return true;
+        }
+
+        if (str_starts_with($authHeader, 'Bearer ')) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

@@ -5,6 +5,8 @@ use Core\Authenticator;
 use Core\DAO\NoteDao;
 use Core\DAO\NoteDaoFactory;
 use Core\Validator;
+use Views\vistas\VistaJson;
+
 class NotesController
 {
     private NoteDao $noteDao;
@@ -63,10 +65,17 @@ class NotesController
 
         authorize($note['user_id'] === $this->currentUserId);
 
-        view("notes/show.view.php", [
-            'heading' => 'Note',
-            'note' => $note
-        ]);
+        if ($this->auth->isRestfulRequest()) {
+            header('Content-Type: application/json');
+            http_response_code(200);
+            echo json_encode($note);
+            exit();
+        } else {
+            view("notes/show.view.php", [
+                'heading' => 'Note',
+                'note' => $note
+            ]);
+        }
     }
 
     function edit(){

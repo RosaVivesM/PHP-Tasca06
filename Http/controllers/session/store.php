@@ -3,9 +3,18 @@
 use Core\Authenticator;
 use Http\Forms\LoginForm;
 
+// Validar y asegurar que los datos han sido enviados
+$email = $_POST['email'] ?? null;
+$password = $_POST['password'] ?? null;
+
+if ($email === null || $password === null) {
+    throw new Exception('Email and password are required.');
+}
+
+// Puedes aplicar validaciones adicionales aquí
 $form = LoginForm::validate($attributes = [
-    'email' => $_POST['email'],
-    'password' => $_POST['password']
+    'email' => trim($email),
+    'password' => trim($password)
 ]);
 
 $signedIn = (new Authenticator)->attempt(
@@ -18,4 +27,5 @@ if (!$signedIn) {
     )->throw();
 }
 
+// Redirección al homepage
 redirect('/');
