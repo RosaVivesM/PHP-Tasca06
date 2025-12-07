@@ -38,7 +38,7 @@ class Authenticator
         return false;
     }
 
-    public function login($user): array
+    public function login($user): void
     {
         $_SESSION['user'] = [
             'id' => $user['id'],

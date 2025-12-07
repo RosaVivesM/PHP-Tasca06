@@ -2,8 +2,9 @@
 
 use Core\Authenticator;
 use Core\Session;
+use Http\controllers\session\SessionController;
 use Views\vistas\VistaJson;
-use Views\vistas\VistaHtml; // Asegúrate de tener esta clase para manejar HTML
+use Views\vistas\VistaHtml;
 
 session_start();
 
@@ -36,7 +37,11 @@ $isRestfulRequest = $auth->isRestfulRequest();
 
 //if (!$isRestfulRequest) {
     try {
-        $router->route($uri, $method);
+        if($isRestfulRequest){
+            (new VistaJson())->imprimir((new SessionController())->get());
+        } else {
+            $router->route($uri, $method);
+        }
     } catch (Exception $exception) {
         Session::flash('errors', $exception->errors);
         Session::flash('old', $exception->old);

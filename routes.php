@@ -1,5 +1,6 @@
 <?php
 
+use Http\controllers\session\SessionController;
 use Http\controllers\notes\NotesController;
 
 $router->get('/', 'index.php');
@@ -19,6 +20,6 @@ $router->post('/notes', [NotesController::class, 'store']);
 $router->get('/register', 'registration/create.php')->only('guest');
 $router->post('/register', 'registration/store.php')->only('guest');
 
-$router->get('/login', 'session/create.php')->only('guest');
-$router->post('/session', 'session/store.php')->only('guest');
-$router->delete('/session', 'session/destroy.php')->only('auth');
+$router->get('/login', [SessionController::class, 'get'])->only('guest');
+$router->post('/session', [SessionController::class, 'post'])->only('guest');
+$router->delete('/session', [SessionController::class, 'delete'])->only('auth');
