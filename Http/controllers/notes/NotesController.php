@@ -147,10 +147,31 @@ class NotesController
         exit();
     }
 
+
+    //TODO: arreglar que si cerc un id inexistend no doni 404
     function update()
     {
+
+        $auth = $this->auth->isRestfulRequest() && ($this->auth->verifyToken($_COOKIE['token']) != null);
+
+
+        if ($auth) {
+            $note = $this->noteDao->findById($_GET['id']);
+            $raw = file_get_contents('php://input');
+            $data = json_decode($raw, true) ?? [];
+            $body = $data['body'] ?? '';
+        } else {
+            $body = $_POST['body'];
+            $note = $this->noteDao->findById($_POST['id']);
+        }
 // find the corresponding note
-        $note = $this->noteDao->findById($_POST['id']);
+
+
+        if($note == null){
+            if($auth){
+                return ['message' => 'Note not found'];
+            }
+        }
 
 // authorize that the current user can edit the note
         authorize($note['user_id'] === $this->currentUserId);
@@ -158,25 +179,37 @@ class NotesController
 // validate the form
         $errors = [];
 
-        if (! Validator::string($_POST['body'], 1, 10)) {
+        if (! Validator::string($body, 1, 10)) {
             $errors['body'] = 'A body of no more than 1,000 characters is required.';
         }
 
 // if no validation errors, update the record in the notes database table.
         if (count($errors)) {
+            if($auth){
+                return json_decode([
+                    "status" => 422,
+                    "error" => $errors]);
+            }
             return view('notes/edit.view.php', [
                 'heading' => 'Edit Note',
                 'errors' => $errors,
                 'note' => $note
             ]);
+
         }
 
-        $this->noteDao->update($_POST['id'], $_POST['body']);
+        $this->noteDao->update($note['id'], $body);
 
-// redirect the user
-        header('location: /notes');
-        die();
-
+        if($auth){
+            return [
+                'message' => 'Note actualized',
+                'note' => $note,
+            ];
+        } else {
+            // redirect the user
+            header('location: /notes');
+            die();
+        }
     }
 }
 ob_end_flush();
