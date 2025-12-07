@@ -3,6 +3,7 @@
 use Core\Authenticator;
 use Core\Session;
 use Http\controllers\session\SessionController;
+use Http\controllers\notes\NotesController;
 use Views\vistas\VistaJson;
 use Views\vistas\VistaHtml;
 
@@ -38,7 +39,7 @@ $isRestfulRequest = $auth->isRestfulRequest();
 
 try {
     if($isRestfulRequest){
-        (new VistaJson())->imprimir((new SessionController())->$method());
+        (new VistaJson())->imprimir((new NotesController())->$method());
     } else {
         $router->route($uri, $method);
     }

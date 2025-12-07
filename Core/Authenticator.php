@@ -1,11 +1,12 @@
 <?php
 
 namespace Core;
+require __DIR__ . '/../vendor/autoload.php';
 
 use Exception;
 use Firebase\JWT\JWT;
-use JetBrains\PhpStorm\NoReturn;
-use Views\vistas\VistaJson;
+use Firebase\JWT\Key;
+use stdClass;
 
 class Authenticator
 {
@@ -79,8 +80,8 @@ class Authenticator
         ];
         $header = $this->base64_url_encode(json_encode($header));
         $payload =  [
-            "exp" => 0,
-            "user_id" => $user_id,
+            "exp" => time() + 3600,
+            "sub" => $user_id,
             "user_email" => $user_email
         ];
 
@@ -95,22 +96,29 @@ class Authenticator
         return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($text));
     }
 
-    // Funció para verificar un token JWT
-    function verifyToken($token): bool
+
+    function verifyToken($token): ?string
     {
+
         if (in_array($token, self::$revokedTokens)) {
-            return false; // El token está revocat
+            return null;
         }
 
+
+
         try {
-            $headers = ['HS256'];
-            $decoded = JWT::decode($token, self::$signing_key, $headers);
-            $user_id = $decoded->sub;
-            return array('success' => true, 'user_id' => $user_id);
+            $key = new Key(self::$signing_key, 'HS256');
+
+            $decoded = JWT::decode($token, $key);
+
+            return $decoded->sub;
         } catch (Exception $e) {
-            return array('success' => false, 'error' => $e->getMessage());
+            echo "Error: " . $e->getMessage();
+            return null;
         }
     }
+
+
 
     public function isRestfulRequest(): bool
     {

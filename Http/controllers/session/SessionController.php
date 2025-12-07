@@ -5,9 +5,7 @@ namespace Http\controllers\session;
 ob_start();
 use Core\Authenticator;
 use Core\Session;
-use Exception;
 use Http\Forms\LoginForm;
-use JetBrains\PhpStorm\NoReturn;
 
 
 class SessionController

@@ -19,15 +19,29 @@ class NotesController
        $this->noteDao = NoteDaoFactory::create();
    }
 
-   function index(): void
-   {
-       $notes = $this->noteDao->getAllByUserId($this->currentUserId);
+    function get(): ?array
+    {
 
-       view("notes/index.view.php", [
-           'heading' => 'My Notes',
-           'notes' => $notes
-       ]);
-   }
+        if ($this->auth->isRestfulRequest()) {
+            $this->currentUserId = $this->auth->verifyToken($_COOKIE['token']);
+
+            if($this->currentUserId != null){
+                $notes = $this->noteDao->getAllByUserId($this->currentUserId);;
+
+                return (['id' => $notes]);
+
+            }
+        } else {
+            $notes = $this->noteDao->getAllByUserId($this->currentUserId);
+
+            view("notes/index.view.php", [
+                'heading' => 'My Notes',
+                'notes' => $notes
+            ]);
+        }
+
+        return null;
+    }
 
     function create(): void
     {
