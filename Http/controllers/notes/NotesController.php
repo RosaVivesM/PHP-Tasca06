@@ -97,21 +97,32 @@ class NotesController
 
     function show(){
 
-        $note = $this->noteDao->findById( $_GET['id']);
+        $note = $this->noteDao->findById($_GET['id']);
+
+        $auth = $this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token']);
+
+        //TODO: arreglar esto
+        if(!$note){
+            if ($auth) {
+                http_response_code(404);
+                return ['message' => 'Note not found'];
+            }
+        }
 
         authorize($note['user_id'] === $this->currentUserId);
 
         if ($this->auth->isRestfulRequest()) {
             header('Content-Type: application/json');
             http_response_code(200);
-            echo json_encode($note);
-            exit();
+            return json_encode($note);
         } else {
             view("notes/show.view.php", [
                 'heading' => 'Note',
                 'note' => $note
             ]);
         }
+
+        return null;
     }
 
     function edit(): ?array
@@ -134,21 +145,33 @@ class NotesController
         return null;
     }
 
-    function destroy(): void
+    //TODO: destroy per a REST
+    function destroy(): array
     {
+        $auth = $this->auth->isRestfulRequest() && isset($_COOKIE['token']) && $this->auth->verifyToken($_COOKIE['token']);
 
-        $note = $this->noteDao->findById($_POST['id']);
+        if($auth){
+            $note = $this->noteDao->findById($_GET['id']);
+        } else {
+            $note = $this->noteDao->findById($_POST['id']);
+        }
 
         authorize($note['user_id'] === $this->currentUserId);
 
-        $this->noteDao->delete($_POST['id']);
+        $this->noteDao->delete($note['id']);
 
-        header('location: /notes');
-        exit();
+        if ($auth) {
+            http_response_code(200);
+            return ['message' => 'Note deleted successfully.'];
+        } else {
+            header('Location: /notes');
+            exit();
+        }
     }
 
 
-    //TODO: arreglar que si cerc un id inexistend no doni 404
+
+    //TODO: arreglar que si cerc un id inexistent no doni 404
     function update()
     {
 
@@ -165,7 +188,6 @@ class NotesController
             $note = $this->noteDao->findById($_POST['id']);
         }
 // find the corresponding note
-
 
         if($note == null){
             if($auth){

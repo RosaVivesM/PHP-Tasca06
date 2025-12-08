@@ -7,6 +7,11 @@ use Core\Authenticator;
 use Core\Session;
 use Http\Forms\LoginForm;
 
+//TODO: arreglar <b>Warning</b>: Cannot modify header information - headers already sent by (output started at
+//C:\Users\Rosa\Documents\IFC33B\PHP\PHP-For-Beginners-Series\views\partials\nav.php:40) in
+//<b>C:\Users\Rosa\Documents\IFC33B\PHP\PHP-For-Beginners-Series\views\vistas\VistaJson.php</b> on line <b>22</b><br />
+//1
+// quan ja estas loggeat
 
 class SessionController
 {
