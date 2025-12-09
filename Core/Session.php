@@ -4,12 +4,12 @@ namespace Core;
 
 class Session
 {
-    public static function has($key)
+    public static function has($key): bool
     {
         return (bool) static::get($key);
     }
 
-    public static function put($key, $value)
+    public static function put($key, $value): void
     {
         $_SESSION[$key] = $value;
     }
@@ -19,17 +19,17 @@ class Session
         return $_SESSION['_flash'][$key] ?? $_SESSION[$key] ?? $default;
     }
 
-    public static function flash($key, $value)
+    public static function flash($key, $value): void
     {
         $_SESSION['_flash'][$key] = $value;
     }
 
-    public static function unflash()
+    public static function unflash(): void
     {
        unset($_SESSION['_flash']);
     }
 
-    public static function flush()
+    public static function flush(): void
     {
         $_SESSION = [];
     }
