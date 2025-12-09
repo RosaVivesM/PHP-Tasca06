@@ -1,9 +1,8 @@
 <?php
 
 use Core\Authenticator;
+use Core\Response;
 use Core\Session;
-use Http\controllers\session\SessionController;
-use Http\controllers\notes\NotesController;
 use Views\vistas\VistaJson;
 use Views\vistas\VistaHtml;
 
@@ -26,26 +25,20 @@ $routes = require base_path('routes.php');
 $uri = parse_url($_SERVER['REQUEST_URI'])['path'];
 $method = $_POST['_method'] ?? $_SERVER['REQUEST_METHOD'];
 
-$peticion = "";
-
-if (isset($_GET['PATH_INFO'])) {
-    $peticion = explode('/', $_GET['PATH_INFO']);
-}
-
-// Verificar si la petición es RESTful
-$auth = new Authenticator();
-$isRestfulRequest = $auth->isRestfulRequest();
-
-
 try {
-    if($isRestfulRequest){
-        (new VistaJson())->imprimir($router->route($uri, $method));
-    } else {
-        $router->route($uri, $method);
+    $router->route($uri, $method);
+} catch (\Core\ValidationException $exception) {
+
+    if ((new Authenticator())->isRestfulRequest()) {
+        Response::json([
+            'errors' => $exception->errors,
+            'old' => $exception->old,
+        ], 422);
     }
-} catch (Exception $exception) {
-    Session::flash('errors', $exception->errors);
+
+    Session::flash('error', $exception->errors);
     Session::flash('old', $exception->old);
+
     return redirect($router->previousUrl());
 }
 
