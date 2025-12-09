@@ -233,23 +233,23 @@ class NotesController
         }
     }
 
-    function update()
+    function update(): void
     {
         $this->requireAuth();
 
         if (isRestfulRequest()) {
             $raw = file_get_contents('php://input');
             $data = json_decode($raw, true) ?? [];
-            $id = isset($data['id']) ? (int)$data['id'] : 0;
+            $id = (int)($_GET['id'] ?? 0);
             $body = $data['body'] ?? '';
         } else {
             $id = (int)($_POST['id'] ?? 0);
             $body = $_POST['body'] ?? '';
         }
 
-        if ($id === 0) {
+        if ($id === null) {
             if (isRestfulRequest()) {
-                Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
+                Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
             } else {
                 abort(Response::NOT_FOUND);
             }
@@ -259,7 +259,7 @@ class NotesController
         $note = $this->noteDao->findById($id);
         if (!$note) {
             if (isRestfulRequest()) {
-                Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
+                Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
             } else {
                 abort(Response::NOT_FOUND);
             }
