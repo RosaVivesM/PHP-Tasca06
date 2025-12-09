@@ -20,9 +20,9 @@ $router->post('/notes', [NotesController::class, 'store']);
 $router->get('/register', 'registration/create.php')->only('guest');
 $router->post('/register', 'registration/store.php')->only('guest');
 
-$router->get('/login', [SessionController::class, 'get'])->only('guest');
-$router->post('/session', [SessionController::class, 'post'])->only('guest');
-$router->delete('/session', [SessionController::class, 'delete'])->only('auth');
+$router->get('/login', 'session/create.php')->only('guest');
+$router->post('/session', 'session/store.php')->only('guest');
+$router->delete('/destroy', 'session/destroy.php')->only('auth');
 
 // Rest
 $router->post('/api/session/login', [SessionController::class, 'apiLogin']);

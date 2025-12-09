@@ -2,9 +2,12 @@
 
 namespace Http\controllers\notes;
 ob_start();
+
+use Core\ApiToken;
 use Core\Authenticator;
 use Core\DAO\NoteDao;
 use Core\DAO\NoteDaoFactory;
+use Core\Response;
 use Core\Validator;
 
 class NotesController
@@ -20,52 +23,71 @@ class NotesController
        $this->noteDao = NoteDaoFactory::create();
    }
 
-    function index(): ?array
+    private function requireAuth(): void{
+        if (isRestfulRequest()) {
+            $tokenService = new ApiToken();
+            $token = get_bearer_token();
+            $userId = $tokenService->getUserFromToken($token);
+
+            if (!$userId) {
+                Response::json(['error' => 'Invalid or not existing content'], Response::UNAUTHORIZED);
+            }
+
+            $this->currentUserId = $userId;
+        } else {
+            if ($this->currentUserId === null) {
+                redirect('/login');
+            }
+        }
+    }
+
+    private function authorizeNoteOwner(array $note): void{
+        if ($note['user_id'] != $this->currentUserId) {
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'No authorized'], Response::FORBIDDEN);
+            } else {
+                authorize(false);
+            }
+        }
+    }
+
+    function index(): void
     {
 
-        if ($this->auth->isRestfulRequest()) {
-            $this->currentUserId = $this->auth->verifyToken($_COOKIE['token']);
+        $this->requireAuth();
 
-            if($this->currentUserId != null){
-                $notes = $this->noteDao->getAllByUserId($this->currentUserId);;
+        $notes = $this->noteDao->getAllByUserId($this->currentUserId);
 
-                return (['id' => $notes]);
-
-            }
+        if(isRestfulRequest()){
+            Response::json(['notes' => $notes]);
         } else {
-            $notes = $this->noteDao->getAllByUserId($this->currentUserId);
-
             view("notes/index.view.php", [
                 'heading' => 'My Notes',
                 'notes' => $notes
             ]);
         }
-
-        return null;
     }
 
-    function create(): ?array
+    function create(): void
     {
-        if($this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token'])){
-            return ["message" => "Not disponible as a Rest request"];
+        if(isRestfulRequest()){
+            Response::json(["message" => "Not disponible as a Rest request"]);
         }
 
         view("notes/create.view.php", [
             'heading' => 'Create Note',
             'errors' => []
         ]);
-
-        return null;
     }
 
-    function store()
+    function store(): void
     {
 
         $errors = [];
 
-        $auth = $this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token']);
+        $this->requireAuth();
 
-        if ($auth) {
+        if (isRestfulRequest()) {
             $raw = file_get_contents('php://input');
             $data = json_decode($raw, true) ?? [];
             $body = $data['body'] ?? '';
@@ -78,159 +100,199 @@ class NotesController
         }
 
         if (! empty($errors)) {
-            if($auth){
-                return json_decode([
-                    "status" => 422,
-                    "error" => $errors]);
+            if(isRestfulRequest()){
+                Response::json(['errors' => $errors], 422);
+            } else {
+                view("notes/create.view.php", [
+                    'heading' => 'Create Note',
+                    'errors' => $errors
+                ]);
             }
-            return view("notes/create.view.php", [
-                'heading' => 'Create Note',
-                'errors' => $errors
-            ]);
+            return;
         }
 
         $this->noteDao->create($body, $this->currentUserId);
 
-        header('location: /notes');
-        die();
+        if(isRestfulRequest()){
+            Response::json(['message' => 'Note correctly created']);
+        } else {
+            redirect('/notes');
+        }
     }
 
-    function show(){
+    function show()
+    {
+        $this->requireAuth();
 
-        $note = $this->noteDao->findById($_GET['id']);
+        $id = (int)($_GET['id'] ?? 0);
 
-        $auth = $this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token']);
-
-        //TODO: arreglar esto
-        if(!$note){
-            if ($auth) {
-                http_response_code(404);
-                return ['message' => 'Note not found'];
+        if ($id === 0) {
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
+            } else {
+                abort(Response::NOT_FOUND);
             }
+            return;
         }
 
-        authorize($note['user_id'] === $this->currentUserId);
+        $note = $this->noteDao->findById($id);
 
-        if ($this->auth->isRestfulRequest()) {
-            header('Content-Type: application/json');
-            http_response_code(200);
-            return json_encode($note);
+        if (!$note) {
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
+            } else {
+                abort(Response::NOT_FOUND);
+            }
+            return;
+        }
+
+        $this->authorizeNoteOwner($note);
+
+        if (isRestfulRequest()) {
+            Response::json(['note' => $note]);
         } else {
             view("notes/show.view.php", [
-                'heading' => 'Note',
-                'note' => $note
+                'heading' => 'Nota',
+                'note'    => $note,
             ]);
         }
 
-        return null;
     }
 
-    function edit(): ?array
+    function edit():void
     {
+        $this->requireAuth();
 
-        if($this->auth->isRestfulRequest() && $this->auth->verifyToken($_COOKIE['token'])){
-            return ["message" => "Not disponible as a Rest request"];
+        if (isRestfulRequest()) {
+            Response::json(['error' => 'Not disponible as a Rest request'], 405);
         }
 
-        $note = $this->noteDao->findById($_GET['id']);
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id === 0) {
+            abort(Response::NOT_FOUND);
+        }
 
-        authorize($note['user_id'] === $this->currentUserId);
+        $note = $this->noteDao->findById($id);
+        if (!$note) {
+            abort(Response::NOT_FOUND);
+        }
 
-        view("notes/edit.view.php", [
-            'heading' => 'Edit Note',
+        $this->authorizeNoteOwner($note);
+
+        view('notes/edit.view.php', [
+            'heading' => 'Edit nota',
             'errors' => [],
-            'note' => $note
+            'note' => $note,
         ]);
-
-        return null;
     }
 
-    //TODO: destroy per a REST
-    function destroy(): array
+    function destroy(): void
     {
-        $auth = $this->auth->isRestfulRequest() && isset($_COOKIE['token']) && $this->auth->verifyToken($_COOKIE['token']);
 
-        if($auth){
-            $note = $this->noteDao->findById($_GET['id']);
+        $this->requireAuth();
+
+        if(isRestfulRequest()){
+            $raw  = file_get_contents('php://input');
+            $data = json_decode($raw, true) ?? [];
+            $id = isset($data['id']) ? (int)$data['id'] : 0;
+
+            if ($id === 0) {
+                $id = (int)($_GET['id'] ?? 0);
+            }
         } else {
-            $note = $this->noteDao->findById($_POST['id']);
+            $id = (int)($_POST['id'] ?? 0);
         }
 
-        authorize($note['user_id'] === $this->currentUserId);
+        if ($id === 0) {
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
+            } else {
+                abort(Response::NOT_FOUND);
+            }
+            return;
+        }
 
-        $this->noteDao->delete($note['id']);
+        $note = $this->noteDao->findById($id);
+        if (!$note) {
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
+            } else {
+                abort(Response::NOT_FOUND);
+            }
+            return;
+        }
 
-        if ($auth) {
-            http_response_code(200);
-            return ['message' => 'Note deleted successfully.'];
+        $this->authorizeNoteOwner($note);
+
+        $this->noteDao->delete($id);
+
+        if (isRestfulRequest()) {
+            Response::json(['message' => 'Nota eliminada']);
         } else {
-            header('Location: /notes');
-            exit();
+            redirect('/notes');
         }
     }
 
-
-
-    //TODO: arreglar que si cerc un id inexistent no doni 404
     function update()
     {
+        $this->requireAuth();
 
-        $auth = $this->auth->isRestfulRequest() && ($this->auth->verifyToken($_COOKIE['token']) != null);
-
-
-        if ($auth) {
-            $note = $this->noteDao->findById($_GET['id']);
+        if (isRestfulRequest()) {
             $raw = file_get_contents('php://input');
             $data = json_decode($raw, true) ?? [];
+            $id = isset($data['id']) ? (int)$data['id'] : 0;
             $body = $data['body'] ?? '';
         } else {
-            $body = $_POST['body'];
-            $note = $this->noteDao->findById($_POST['id']);
+            $id = (int)($_POST['id'] ?? 0);
+            $body = $_POST['body'] ?? '';
         }
-// find the corresponding note
 
-        if($note == null){
-            if($auth){
-                return ['message' => 'Note not found'];
+        if ($id === 0) {
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
+            } else {
+                abort(Response::NOT_FOUND);
             }
+            return;
         }
 
-// authorize that the current user can edit the note
-        authorize($note['user_id'] === $this->currentUserId);
+        $note = $this->noteDao->findById($id);
+        if (!$note) {
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
+            } else {
+                abort(Response::NOT_FOUND);
+            }
+            return;
+        }
 
-// validate the form
+        $this->authorizeNoteOwner($note);
+
         $errors = [];
 
-        if (! Validator::string($body, 1, 10)) {
-            $errors['body'] = 'A body of no more than 1,000 characters is required.';
+        if (!Validator::string($body, 1, 1000)) {
+            $errors['body'] = 'El texto debe tener máximo 1000 caracteres';
         }
 
-// if no validation errors, update the record in the notes database table.
-        if (count($errors)) {
-            if($auth){
-                return json_decode([
-                    "status" => 422,
-                    "error" => $errors]);
+        if (!empty($errors)) {
+            if (isRestfulRequest()) {
+                Response::json(['errors' => $errors], 422);
+            } else {
+                view('notes/edit.view.php', [
+                    'heading' => 'Editar nota',
+                    'errors' => $errors,
+                    'note' => $note,
+                ]);
             }
-            return view('notes/edit.view.php', [
-                'heading' => 'Edit Note',
-                'errors' => $errors,
-                'note' => $note
-            ]);
-
+            return;
         }
 
-        $this->noteDao->update($note['id'], $body);
+        $this->noteDao->update($id, $body);
 
-        if($auth){
-            return [
-                'message' => 'Note actualized',
-                'note' => $note,
-            ];
+        if (isRestfulRequest()) {
+            Response::json(['message' => 'Nota actualizada']);
         } else {
-            // redirect the user
-            header('location: /notes');
-            die();
+            redirect('/notes');
         }
     }
 }

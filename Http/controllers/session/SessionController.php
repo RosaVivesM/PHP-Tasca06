@@ -3,97 +3,83 @@
 namespace Http\controllers\session;
 
 ob_start();
-use Core\Authenticator;
-use Core\Session;
-use Http\Forms\LoginForm;
 
-//TODO: arreglar <b>Warning</b>: Cannot modify header information - headers already sent by (output started at
-//C:\Users\Rosa\Documents\IFC33B\PHP\PHP-For-Beginners-Series\views\partials\nav.php:40) in
-//<b>C:\Users\Rosa\Documents\IFC33B\PHP\PHP-For-Beginners-Series\views\vistas\VistaJson.php</b> on line <b>22</b><br />
-//1
-// quan ja estas loggeat
+use Core\ApiToken;
+use Core\Authenticator;
+use Core\Response;
 
 class SessionController
 {
     private Authenticator $auth;
+    private ApiToken $tokens;
 
     public function __construct()
     {
         $this->auth = new Authenticator();
+        $this->tokens = new ApiToken();
     }
 
-    public function get(): string|bool
+    public function apiLogin()
     {
-        view('session/create.view.php', [
-            'errors' => Session::get('errors')
-        ]);
+        if(!isRestfulRequest()){
+            abort(Response::NOT_FOUND);
+        }
 
-        return json_encode([
-            'errors' => Session::get('errors')
-        ]);
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
 
+        if(!is_array($data)){
+            $data = $_POST;
+        }
+
+        $email = $data['email'] ?? null;
+        $password = $data['password'] ?? null;
+
+        if(!$email || !$password){
+            Response::json(
+                ['error' => 'required email and password'],
+                Response::BAD_REQUEST
+            );
+        }
+
+        $signedIn = $this->auth->attempt($email, $password);
+
+        if(!$signedIn){
+            Response::json(
+                ['error' => 'Incorrect credentials'],
+                Response::UNAUTHORIZED
+            );
+        }
+
+        $userId = $this->auth->getCurrentUserId();
+
+        $token = $this->tokens->generateToken($userId);
+
+        Response::json([
+            'token' => $token,
+            'user'  => [
+                'id'    => $userId,
+                'email' => $email,
+            ],
+        ]);
     }
 
-    public function post(): string
-    {
-
-        $restful = $this->auth->isRestfulRequest();
-        // Inicializar variables
-        $email = null;
-        $password = null;
-
-        // Manejar solicitudes JSON
-        if ($restful) {
-            $data = json_decode(file_get_contents('php://input'), true);
-            $email = $data['email'] ?? null;
-            $password = $data['password'] ?? null;
-        } else { // Manejar solicitudes de formulario
-            $email = $_POST['email'] ?? null;
-            $password = $_POST['password'] ?? null;
+    public function apiLogout(){
+        if (!isRestfulRequest()) {
+            abort(Response::NOT_FOUND);
         }
 
-        // Validar que ambos campos son proporcionados
-        if ($email === null || $password === null) {
-            http_response_code(400);
-            return json_encode(['error' => 'Email and password are required.']);
+        $token = get_bearer_token();
+
+        if (!$token) {
+            Response::json(
+                ['error' => 'Token not recived'],
+                Response::BAD_REQUEST
+            );
         }
 
-        // Validar las credenciales
-        $form = LoginForm::validate($attributes = [
-            'email' => trim($email),
-            'password' => trim($password)
-        ]);
+        $this->tokens->deleteToken($token);
 
-        $signedIn = $this->auth->attempt(
-            $attributes['email'], $attributes['password']
-        );
-
-        // Manejo de la respuesta de inicio de sesión
-        if (!$signedIn) {
-            http_response_code(401);
-            return json_encode(['error' => 'No matching account found for that email address and password.']);
-        }
-
-        if(!$restful)redirect('/');
-
-        // Respuesta exitosa
-        http_response_code(200);
-        return json_encode(['message' => 'Session iniciada']);
-    }
-
-
-    public function delete(): bool|string
-    {
-
-        $this->auth->logout();
-
-        if($this->auth->isRestfulRequest()){
-            http_response_code(200);
-            return json_encode(['message' => 'Session cerrada']);
-        }
-
-        header('location: /');
-        exit();
+        Response::json(['message' => 'REST Session correctly closed']);
     }
 }
-ob_end_flush();
