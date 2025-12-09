@@ -103,8 +103,6 @@ class Authenticator
             return null;
         }
 
-
-
         try {
             $key = new Key(self::$signing_key, 'HS256');
 
