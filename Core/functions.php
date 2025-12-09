@@ -18,6 +18,21 @@ function urlIs($value)
 
 function abort($code = 404)
 {
+    if(isRestfulRequest()){
+        $message = 'Error';
+
+        switch ($code){
+            case Response::NOT_FOUND: $message = 'Resource Not Found'; break;
+            case Response::FORBIDDEN: $message = 'Access denied'; break;
+            case Response::UNAUTHORIZED: $message = 'Not authenticated'; break;
+        }
+
+        Response::json([
+            'error' => $message,
+            'error' => $code,
+        ], $code);
+    }
+
     http_response_code($code);
 
     require base_path("views/{$code}.php");
@@ -55,4 +70,10 @@ function redirect($path)
 function old($key, $default = '')
 {
     return Core\Session::get('old')[$key] ?? $default;
+}
+
+function isRestfulRequest(): bool
+{
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    return substr($path, 0, 5) === '/api/';
 }
