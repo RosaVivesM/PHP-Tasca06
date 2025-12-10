@@ -1,5 +1,6 @@
 <?php
 
+use Http\controllers\notes\NotesApiController;
 use Http\controllers\session\SessionController;
 use Http\controllers\notes\NotesController;
 
@@ -22,15 +23,15 @@ $router->post('/register', 'registration/store.php')->only('guest');
 
 $router->get('/login', 'session/create.php')->only('guest');
 $router->post('/session', 'session/store.php')->only('guest');
-$router->delete('/destroy', 'session/destroy.php')->only('auth');
+$router->delete('/session', 'session/destroy.php')->only('auth');
 
 // Rest
 $router->post('/api/session/login', [SessionController::class, 'apiLogin']);
 $router->post('/api/session/logout', [SessionController::class, 'apiLogout']);
 
 //notes with rest
-$router->get('/api/notes', [NotesController::class, 'index']);
-$router->get('/api/note', [NotesController::class, 'show']);
-$router->post('/api/notes', [NotesController::class, 'store']);
-$router->put('/api/note', [NotesController::class, 'update']);
-$router->delete('/api/note', [NotesController::class, 'destroy']);
+$router->get('/api/notes', [NotesApiController::class, 'index']);
+$router->get('/api/note', [NotesApiController::class, 'show']);
+$router->post('/api/notes', [NotesApiController::class, 'store']);
+$router->put('/api/note', [NotesApiController::class, 'update']);
+$router->delete('/api/note', [NotesApiController::class, 'destroy']);

@@ -1,7 +1,6 @@
 <?php
 
 namespace Http\controllers\notes;
-ob_start();
 
 use Core\ApiToken;
 use Core\Authenticator;
@@ -10,7 +9,7 @@ use Core\DAO\NoteDaoFactory;
 use Core\Response;
 use Core\Validator;
 
-class NotesController
+class NotesApiController
 {
     private NoteDao $noteDao;
     private Authenticator $auth;
@@ -25,19 +24,21 @@ class NotesController
 
     private function requireAuth(): void
     {
+        $tokenService = new ApiToken();
+        $token = get_bearer_token();
+        $userId = $tokenService->getUserFromToken($token);
 
-        if ($this->currentUserId === null) {
-            redirect('/login');
+        if (!$userId) {
+            Response::json(['error' => 'Invalid or not existing content'], Response::UNAUTHORIZED);
         }
 
+        $this->currentUserId = $userId;
     }
 
     private function authorizeNoteOwner(array $note): void
     {
         if ($note['user_id'] != $this->currentUserId) {
-
-            authorize(false);
-
+            Response::json(['error' => 'No authorized'], Response::FORBIDDEN);
         }
     }
 
@@ -48,20 +49,13 @@ class NotesController
 
         $notes = $this->noteDao->getAllByUserId($this->currentUserId);
 
-        view("notes/index.view.php", [
-            'heading' => 'My Notes',
-            'notes' => $notes
-        ]);
+        Response::json(['notes' => $notes]);
 
     }
 
     function create(): void
     {
-
-        view("notes/create.view.php", [
-            'heading' => 'Create Note',
-            'errors' => []
-        ]);
+        Response::json(["message" => "Not disponible as a Rest request"]);
     }
 
     function store(): void
@@ -72,8 +66,9 @@ class NotesController
         $this->requireAuth();
 
 
-        $body = $_POST['body'];
-
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?? [];
+        $body = $data['body'] ?? '';
 
         if (! Validator::string($body, 1, 1000)) {
             $errors['body'] = 'A body of no more than 1,000 characters is required.';
@@ -81,10 +76,7 @@ class NotesController
 
         if (! empty($errors)) {
 
-            view("notes/create.view.php", [
-                'heading' => 'Create Note',
-                'errors' => $errors
-            ]);
+            Response::json(['errors' => $errors], 422);
 
             return;
         }
@@ -92,7 +84,7 @@ class NotesController
         $this->noteDao->create($body, $this->currentUserId);
 
 
-        redirect('/notes');
+        Response::json(['message' => 'Note correctly created']);
 
     }
 
@@ -103,7 +95,9 @@ class NotesController
         $id = (int)($_GET['id'] ?? 0);
 
         if ($id === 0) {
+
             Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
+
             return;
         }
 
@@ -111,6 +105,7 @@ class NotesController
 
         if (!$note) {
             Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
+
             return;
         }
 
@@ -122,10 +117,8 @@ class NotesController
 
     function edit():void
     {
-        $this->requireAuth();
 
         Response::json(['error' => 'Not disponible as a Rest request'], 405);
-
     }
 
     function destroy(): void
@@ -141,15 +134,19 @@ class NotesController
             $id = (int)($_GET['id'] ?? 0);
         }
 
-
         if ($id === 0) {
-            Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
+                Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
+
             return;
         }
 
         $note = $this->noteDao->findById($id);
         if (!$note) {
-            Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
+            } else {
+                abort(Response::NOT_FOUND);
+            }
             return;
         }
 
@@ -157,28 +154,43 @@ class NotesController
 
         $this->noteDao->delete($id);
 
-        Response::json(['message' => 'Nota eliminada']);
-
+        if (isRestfulRequest()) {
+            Response::json(['message' => 'Nota eliminada']);
+        } else {
+            redirect('/notes');
+        }
     }
 
     function update(): void
     {
         $this->requireAuth();
 
-
-        $raw = file_get_contents('php://input');
-        $data = json_decode($raw, true) ?? [];
-        $id = (int)($_GET['id'] ?? 0);
-        $body = $data['body'] ?? '';
+        if (isRestfulRequest()) {
+            $raw = file_get_contents('php://input');
+            $data = json_decode($raw, true) ?? [];
+            $id = (int)($_GET['id'] ?? 0);
+            $body = $data['body'] ?? '';
+        } else {
+            $id = (int)($_POST['id'] ?? 0);
+            $body = $_POST['body'] ?? '';
+        }
 
         if ($id === null) {
-            Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
+            } else {
+                abort(Response::NOT_FOUND);
+            }
             return;
         }
 
         $note = $this->noteDao->findById($id);
         if (!$note) {
-            Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
+            if (isRestfulRequest()) {
+                Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
+            } else {
+                abort(Response::NOT_FOUND);
+            }
             return;
         }
 
@@ -191,12 +203,25 @@ class NotesController
         }
 
         if (!empty($errors)) {
-            Response::json(['errors' => $errors], 422);
+            if (isRestfulRequest()) {
+                Response::json(['errors' => $errors], 422);
+            } else {
+                view('notes/edit.view.php', [
+                    'heading' => 'Editar nota',
+                    'errors' => $errors,
+                    'note' => $note,
+                ]);
+            }
             return;
         }
 
         $this->noteDao->update($id, $body);
 
-        Response::json(['message' => 'Nota actualizada']);
+        if (isRestfulRequest()) {
+            Response::json(['message' => 'Nota actualizada']);
+        } else {
+            redirect('/notes');
+        }
     }
 }
+
