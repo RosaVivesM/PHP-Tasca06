@@ -71,8 +71,6 @@ class ApiToken
             ['token' => $token]
         );
 
-        dd(json_encode($token));
-
         return $result !== false && $this->db->statement->rowCount() > 0;
     }
 }
