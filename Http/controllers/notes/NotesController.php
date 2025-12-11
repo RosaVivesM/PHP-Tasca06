@@ -23,180 +23,112 @@ class NotesController
         $this->noteDao = NoteDaoFactory::create();
     }
 
-    private function requireAuth(): void
-    {
-
-        if ($this->currentUserId === null) {
-            redirect('/login');
-        }
-
-    }
-
-    private function authorizeNoteOwner(array $note): void
-    {
-        if ($note['user_id'] != $this->currentUserId) {
-
-            authorize(false);
-
-        }
-    }
-
     function index(): void
     {
-
-        $this->requireAuth();
-
         $notes = $this->noteDao->getAllByUserId($this->currentUserId);
 
         view("notes/index.view.php", [
             'heading' => 'My Notes',
             'notes' => $notes
         ]);
-
     }
 
     function create(): void
     {
-
         view("notes/create.view.php", [
             'heading' => 'Create Note',
             'errors' => []
         ]);
     }
 
-    function store(): void
-    {
+    function store(){
 
         $errors = [];
 
-        $this->requireAuth();
-
-
-        $body = $_POST['body'];
-
-
-        if (! Validator::string($body, 1, 1000)) {
+        if (! Validator::string($_POST['body'], 1, 1000)) {
             $errors['body'] = 'A body of no more than 1,000 characters is required.';
         }
 
         if (! empty($errors)) {
-
-            view("notes/create.view.php", [
+            return view("notes/create.view.php", [
                 'heading' => 'Create Note',
                 'errors' => $errors
             ]);
-
-            return;
         }
 
-        $this->noteDao->create($body, $this->currentUserId);
+        $this->noteDao->create($_POST['body'], $this->currentUserId);
 
-
-        redirect('/notes');
-
+        header('location: /notes');
+        die();
     }
 
-    function show()
-    {
-        $this->requireAuth();
+    function show(){
 
-        $id = (int)($_GET['id'] ?? 0);
+        $note = $this->noteDao->findById( $_GET['id']);
 
-        if ($id === 0) {
-            Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
-            return;
-        }
+        authorize($note['user_id'] === $this->currentUserId);
 
-        $note = $this->noteDao->findById($id);
-
-        if (!$note) {
-            Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
-            return;
-        }
-
-        $this->authorizeNoteOwner($note);
-
-        Response::json(['note' => $note]);
-
+        view("notes/show.view.php", [
+            'heading' => 'Note',
+            'note' => $note
+        ]);
     }
 
-    function edit():void
-    {
-        $this->requireAuth();
+    function edit(){
 
-        Response::json(['error' => 'Not disponible as a Rest request'], 405);
+        $note = $this->noteDao->findById($_GET['id']);
 
+        authorize($note['user_id'] === $this->currentUserId);
+
+        view("notes/edit.view.php", [
+            'heading' => 'Edit Note',
+            'errors' => [],
+            'note' => $note
+        ]);
     }
 
     function destroy(): void
     {
 
-        $this->requireAuth();
+        $note = $this->noteDao->findById($_POST['id']);
 
-        $raw  = file_get_contents('php://input');
-        $data = json_decode($raw, true) ?? [];
-        $id = isset($data['id']) ? (int)$data['id'] : 0;
+        authorize($note['user_id'] === $this->currentUserId);
 
-        if ($id === 0) {
-            $id = (int)($_GET['id'] ?? 0);
-        }
+        $this->noteDao->delete($_POST['id']);
 
-
-        if ($id === 0) {
-            Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
-            return;
-        }
-
-        $note = $this->noteDao->findById($id);
-        if (!$note) {
-            Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
-            return;
-        }
-
-        $this->authorizeNoteOwner($note);
-
-        $this->noteDao->delete($id);
-
-        Response::json(['message' => 'Nota eliminada']);
-
+        header('location: /notes');
+        exit();
     }
 
-    function update(): void
+    function update()
     {
-        $this->requireAuth();
+// find the corresponding note
+        $note = $this->noteDao->findById($_POST['id']);
 
+// authorize that the current user can edit the note
+        authorize($note['user_id'] === $this->currentUserId);
 
-        $raw = file_get_contents('php://input');
-        $data = json_decode($raw, true) ?? [];
-        $id = (int)($_GET['id'] ?? 0);
-        $body = $data['body'] ?? '';
-
-        if ($id === null) {
-            Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
-            return;
-        }
-
-        $note = $this->noteDao->findById($id);
-        if (!$note) {
-            Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
-            return;
-        }
-
-        $this->authorizeNoteOwner($note);
-
+// validate the form
         $errors = [];
 
-        if (!Validator::string($body, 1, 1000)) {
-            $errors['body'] = 'El texto debe tener máximo 1000 caracteres';
+        if (! Validator::string($_POST['body'], 1, 10)) {
+            $errors['body'] = 'A body of no more than 1,000 characters is required.';
         }
 
-        if (!empty($errors)) {
-            Response::json(['errors' => $errors], 422);
-            return;
+// if no validation errors, update the record in the notes database table.
+        if (count($errors)) {
+            return view('notes/edit.view.php', [
+                'heading' => 'Edit Note',
+                'errors' => $errors,
+                'note' => $note
+            ]);
         }
 
-        $this->noteDao->update($id, $body);
+        $this->noteDao->update($_POST['id'], $_POST['body']);
 
-        Response::json(['message' => 'Nota actualizada']);
+// redirect the user
+        header('location: /notes');
+        die();
+
     }
 }
