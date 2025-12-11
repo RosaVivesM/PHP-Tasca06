@@ -135,18 +135,13 @@ class NotesApiController
         }
 
         if ($id === 0) {
-                Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
-
+            Response::json(['error' => 'ID requerido'], Response::BAD_REQUEST);
             return;
         }
 
         $note = $this->noteDao->findById($id);
         if (!$note) {
-            if (isRestfulRequest()) {
-                Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
-            } else {
-                abort(Response::NOT_FOUND);
-            }
+            Response::json(['error' => 'Nota no encontrada'], Response::NOT_FOUND);
             return;
         }
 
@@ -154,43 +149,28 @@ class NotesApiController
 
         $this->noteDao->delete($id);
 
-        if (isRestfulRequest()) {
-            Response::json(['message' => 'Nota eliminada']);
-        } else {
-            redirect('/notes');
-        }
+        Response::json(['message' => 'Nota eliminada']);
     }
 
     function update(): void
     {
         $this->requireAuth();
 
-        if (isRestfulRequest()) {
-            $raw = file_get_contents('php://input');
-            $data = json_decode($raw, true) ?? [];
-            $id = (int)($_GET['id'] ?? 0);
-            $body = $data['body'] ?? '';
-        } else {
-            $id = (int)($_POST['id'] ?? 0);
-            $body = $_POST['body'] ?? '';
-        }
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?? [];
+        $id = (int)($_GET['id'] ?? 0);
+        $body = $data['body'] ?? '';
 
         if ($id === null) {
-            if (isRestfulRequest()) {
-                Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
-            } else {
-                abort(Response::NOT_FOUND);
-            }
+
+            Response::json(['error' => 'ID required'], Response::BAD_REQUEST);
             return;
         }
 
         $note = $this->noteDao->findById($id);
         if (!$note) {
-            if (isRestfulRequest()) {
-                Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
-            } else {
-                abort(Response::NOT_FOUND);
-            }
+
+            Response::json(['error' => 'Note not found'], Response::NOT_FOUND);
             return;
         }
 
@@ -203,25 +183,13 @@ class NotesApiController
         }
 
         if (!empty($errors)) {
-            if (isRestfulRequest()) {
-                Response::json(['errors' => $errors], 422);
-            } else {
-                view('notes/edit.view.php', [
-                    'heading' => 'Editar nota',
-                    'errors' => $errors,
-                    'note' => $note,
-                ]);
-            }
+            Response::json(['errors' => $errors], 422);
             return;
         }
 
         $this->noteDao->update($id, $body);
 
-        if (isRestfulRequest()) {
-            Response::json(['message' => 'Nota actualizada']);
-        } else {
-            redirect('/notes');
-        }
+        Response::json(['message' => 'Nota actualizada']);
     }
 }
 
