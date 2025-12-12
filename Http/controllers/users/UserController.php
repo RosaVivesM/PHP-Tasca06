@@ -1,7 +1,6 @@
 <?php
 namespace Http\controllers\users;
 
-use Core\ApiToken;
 use Core\Authenticator;
 use Core\DAO\UserDaoImpl;
 use Core\Response;
@@ -37,7 +36,7 @@ class UserController
 
     public function update(): void
     {
-        $this->currentUserId = Authenticator::class->requireAuth();
+        $this->currentUserId = $this->auth->requireAuth();
 
         $raw = file_get_contents('php://input');
         $data = json_decode($raw, true) ?? [];
@@ -71,7 +70,7 @@ class UserController
                 Response::json(['error' => 'Error updating user'], 500);
             }
         } else {
-            Response::json(['message' => 'No data to update'], 200);
+            Response::json(['message' => 'No data to update'], 400);
         }
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Http\controllers\notes;
 
-use Core\ApiToken;
 use Core\Authenticator;
 use Core\DAO\NoteDao;
 use Core\DAO\NoteDaoFactory;
@@ -32,7 +31,7 @@ class NotesApiController
     function index(): void
     {
 
-        $this->currentUserId = Authenticator::class->requireAuth();
+        $this->currentUserId = $this->auth->requireAuth();
 
         $notes = $this->noteDao->getAllByUserId($this->currentUserId);
 
@@ -50,7 +49,8 @@ class NotesApiController
 
         $errors = [];
 
-        $this->requireAuth();
+        $this->currentUserId = $this->auth->requireAuth();
+
 
 
         $raw = file_get_contents('php://input');
@@ -77,7 +77,8 @@ class NotesApiController
 
     function show()
     {
-        $this->requireAuth();
+        $this->currentUserId = $this->auth->requireAuth();
+
 
         $id = (int)($_GET['id'] ?? 0);
 
@@ -111,7 +112,8 @@ class NotesApiController
     function destroy(): void
     {
 
-        $this->requireAuth();
+        $this->currentUserId = $this->auth->requireAuth();
+
 
         $raw  = file_get_contents('php://input');
         $data = json_decode($raw, true) ?? [];
@@ -141,7 +143,8 @@ class NotesApiController
 
     function update(): void
     {
-        $this->requireAuth();
+        $this->currentUserId = $this->auth->requireAuth();
+
 
         $raw = file_get_contents('php://input');
         $data = json_decode($raw, true) ?? [];

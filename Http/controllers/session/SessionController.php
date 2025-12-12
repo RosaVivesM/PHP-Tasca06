@@ -101,6 +101,6 @@ class SessionController
 
         $this->tokens->deleteAllTokensForUser($this->tokens->getUserFromToken($token));
 
-        Response::json(['message' => 'REST Session correctly closed']);
+        Response::json(['message' => 'REST Sessions correctly closed']);
     }
 }

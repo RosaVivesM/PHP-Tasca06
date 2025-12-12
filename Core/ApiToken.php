@@ -11,7 +11,7 @@ class ApiToken
     private Database $db;
     private int $expirationTime;
 
-    public function __construct(int $expirationTime = 60) // tiempo de vida del token en segundos, esto seria 1h
+    public function __construct(int $expirationTime = 3600) // tiempo de vida del token en segundos, esto seria 1h
     {
         $this->db = App::resolve(Database::class);
         $this->expirationTime = $expirationTime;
