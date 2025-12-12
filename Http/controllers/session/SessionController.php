@@ -19,7 +19,7 @@ class SessionController
         $this->tokens = new ApiToken();
     }
 
-    public function apiLogin()
+    public function apiLogin(): void
     {
         if(!isRestfulRequest()){
             abort(Response::NOT_FOUND);
@@ -64,7 +64,8 @@ class SessionController
         ]);
     }
 
-    public function apiLogout(){
+    public function apiLogout(): void
+    {
         if (!isRestfulRequest()) {
             abort(Response::NOT_FOUND);
         }
@@ -79,6 +80,26 @@ class SessionController
         }
 
         $this->tokens->deleteToken($token);
+
+        Response::json(['message' => 'REST Session correctly closed']);
+    }
+
+    public function apiLogoutAll(): void
+    {
+        if (!isRestfulRequest()) {
+            abort(Response::NOT_FOUND);
+        }
+
+        $token = get_bearer_token();
+
+        if (!$token) {
+            Response::json(
+                ['error' => 'Token not recived'],
+                Response::BAD_REQUEST
+            );
+        }
+
+        $this->tokens->deleteAllTokensForUser($this->tokens->getUserFromToken($token));
 
         Response::json(['message' => 'REST Session correctly closed']);
     }

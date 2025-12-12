@@ -1,6 +1,7 @@
 <?php
 
 use Core\App;
+use Core\DAO\UserDaoImpl;
 use Core\Database;
 use Core\Validator;
 use Core\Authenticator;
@@ -25,20 +26,20 @@ if (! empty($errors)) {
     ]);
 }
 
-$user = $db->query('select * from users where email = :email', [
-    'email' => $email
-])->find();
+$user = UserDaoImpl::class->findUserByEmail($email);
 
 if ($user) {
     header('location: /');
     exit();
 } else {
-    $db->query('INSERT INTO users(email, password) VALUES(:email, :password)', [
-        'email' => $email,
-        'password' => password_hash($password, PASSWORD_BCRYPT)
-    ]);
 
-    login($user);
+    UserDaoImpl::class->insertUser($email, $password);
+//    $db->query('INSERT INTO users(email, password) VALUES(:email, :password)', [
+//        'email' => $email,
+//        'password' => password_hash($password, PASSWORD_BCRYPT)
+//    ]);
+
+    Authenticator::class->login($user);
 
     header('location: /');
     exit();

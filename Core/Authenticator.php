@@ -3,9 +3,7 @@
 namespace Core;
 require __DIR__ . '/../vendor/autoload.php';
 
-use Exception;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
+use Core\DAO\UserDaoImpl;
 
 class Authenticator
 {
@@ -19,7 +17,7 @@ class Authenticator
                 'email' => $email
             ])->find();
 
-
+//        $user = UserDaoImpl::class->findUserByEmail($email);
 
         if ($user) {
             if (password_verify($password, $user['password'])) {

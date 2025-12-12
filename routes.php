@@ -28,6 +28,7 @@ $router->delete('/session', 'session/destroy.php')->only('auth');
 // Rest
 $router->post('/api/session/login', [SessionController::class, 'apiLogin']);
 $router->post('/api/session/logout', [SessionController::class, 'apiLogout']);
+$router->post('/api/session/logoutAll', [SessionController::class, 'apiLogoutAll']);
 
 //notes with rest
 $router->get('/api/notes', [NotesApiController::class, 'index']);
