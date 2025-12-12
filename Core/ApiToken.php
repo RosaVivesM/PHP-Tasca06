@@ -4,25 +4,29 @@ namespace Core;
 
 use DateTimeImmutable;
 use Exception;
+use Random\RandomException;
 
 class ApiToken
 {
     private Database $db;
-    private int $timeLiveTokens;
+    private int $expirationTime;
 
-    public function __construct(int $timeLiveTokens = 3600) // tiempo de vida del token en segundos, esto seria 1h
+    public function __construct(int $expirationTime = 60) // tiempo de vida del token en segundos, esto seria 1h
     {
         $this->db = App::resolve(Database::class);
-        $this->timeLiveTokens = $timeLiveTokens;
+        $this->expirationTime = $expirationTime;
     }
 
+    /**
+     * @throws RandomException
+     */
     public function generateToken(int $userId): string
     {
 
         $token = bin2hex(random_bytes(32));
 
         $expiresAt = (new DateTimeImmutable(
-            "+$this->timeLiveTokens seconds"))
+            "+$this->expirationTime seconds"))
             ->format('U');
 
         $this->db->query(
@@ -36,7 +40,6 @@ class ApiToken
         );
 
         return $token;
-
 
     }
 
@@ -59,8 +62,12 @@ class ApiToken
         return (int)$row['user_id'];
     }
 
-    public function deleteToken(string $token): bool
+    public function deleteToken(string $token): ?bool
     {
+
+        if($token == null){
+            return null;
+        }
 
         $result = $this->db->query(
             'DELETE FROM api_tokens WHERE token = :token',
@@ -71,34 +78,34 @@ class ApiToken
     }
 
     public function deleteAllTokensForUser(int $userId): void {//elimina todos los tokens de un usuario
+
         $this->db->query(
             'DELETE FROM api_tokens WHERE user_id = :user_id',
             ['user_id' => $userId]
         );
+
     }
 
     public function verifyToken(String $token): ?bool
     {
-        try {
+        if($token == null){
+            return null;
+        }
 
-            $row = $this->db->query(
-                'SELECT expires_at FROM api_tokens WHERE token = :token LIMIT 1',
-                ['token' => $token]
-            )->find();
+        $row = $this->db->query(
+            'SELECT expires_at FROM api_tokens WHERE token = :token LIMIT 1',
+            ['token' => $token]
+        )->find();
 
-            $expiration_date = (string)$row['expires_at'];
 
-            if(date('U') > $expiration_date){
+        $expiration_date = (string)$row['expires_at'];
 
-                $this->deleteToken($token);
-                return false;
-            }
+        if(date('U') > $expiration_date){
 
-            return true;
-        } catch (Exception $e) {
-            echo "Error: " . $e->getMessage();
             $this->deleteToken($token);
             return false;
         }
+
+        return true;
     }
 }

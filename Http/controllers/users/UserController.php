@@ -5,6 +5,7 @@ use Core\ApiToken;
 use Core\Authenticator;
 use Core\DAO\UserDaoImpl;
 use Core\Response;
+use Throwable;
 
 
 class UserController
@@ -19,24 +20,6 @@ class UserController
         $this->currentUserId = $this->auth->getCurrentUserId();
         $this->userDao = new UserDaoImpl();
     }
-
-    private function requireAuth(): void
-    {
-        $tokenService = new ApiToken();
-        $token = get_bearer_token();
-        $userId = $tokenService->getUserFromToken($token);
-
-        if (!$userId) {
-            Response::json(['error' => 'Invalid or not existing content'], Response::UNAUTHORIZED);
-        }
-
-        if(!(new ApiToken)->verifyToken($token)){
-            Response::json(['error' => 'Invalid token'], Response::UNAUTHORIZED);
-        }
-
-        $this->currentUserId = $userId;
-    }
-
 
     private function updateUser(int $userId, array $data): bool
     {
@@ -54,7 +37,7 @@ class UserController
 
     public function update(): void
     {
-        $this->requireAuth();
+        $this->currentUserId = Authenticator::class->requireAuth();
 
         $raw = file_get_contents('php://input');
         $data = json_decode($raw, true) ?? [];

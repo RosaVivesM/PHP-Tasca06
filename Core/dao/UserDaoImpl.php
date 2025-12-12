@@ -15,8 +15,13 @@ class UserDaoImpl implements UserDao
         $this->db = App::resolve(Database::class);
     }
 
-    public function updateUserById($id, array $data)
+    public function updateUserById(int $id, array $data)
     {
+
+        if(empty($data)){
+            return null;
+        }
+
         $fields = [];
         $params = [];
 
@@ -33,14 +38,22 @@ class UserDaoImpl implements UserDao
         );
     }
 
-    public function findUserByEmail($email){
+    public function findUserByEmail(string $email){
+        if($email == null){
+            return null;
+        }
+
         return $this->db->query('select * from users where email = :email', [
             'email' => $email
         ])->find();
     }
 
-    public function insertUser($email, $password)
+    public function insertUser(string $email, string $password)
     {
+        if($email == null || $password == null){
+            return null;
+        }
+
         return $this->db->query('INSERT INTO users(email, password) VALUES(:email, :password)', [
             'email' => $email,
             'password' => password_hash($password, PASSWORD_BCRYPT)

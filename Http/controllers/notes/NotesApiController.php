@@ -22,23 +22,6 @@ class NotesApiController
         $this->noteDao = NoteDaoFactory::create();
     }
 
-    private function requireAuth(): void
-    {
-        $tokenService = new ApiToken();
-        $token = get_bearer_token();
-        $userId = $tokenService->getUserFromToken($token);
-
-        if (!$userId) {
-            Response::json(['error' => 'Invalid or not existing content'], Response::UNAUTHORIZED);
-        }
-
-        if(!(new ApiToken)->verifyToken($token)){
-            Response::json(['error' => 'Invalid token'], Response::UNAUTHORIZED);
-        }
-
-        $this->currentUserId = $userId;
-    }
-
     private function authorizeNoteOwner(array $note): void
     {
         if ($note['user_id'] != $this->currentUserId) {
@@ -49,7 +32,7 @@ class NotesApiController
     function index(): void
     {
 
-        $this->requireAuth();
+        $this->currentUserId = Authenticator::class->requireAuth();
 
         $notes = $this->noteDao->getAllByUserId($this->currentUserId);
 

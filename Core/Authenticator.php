@@ -52,53 +52,22 @@ class Authenticator
         return Session::get('user')['id'] ?? null;
     }
 
-    // Funció per generar un token JWT.
-//    function generateToken($user_id, $user_email): string
-//    {
-//        $header = [
-//            "alg" => "HS256",
-//            "typ" => "JWT",
-//        ];
-//        $header = $this->base64_url_encode(json_encode($header));
-//        $payload =  [
-//            "exp" => time() + 3600,
-//            "sub" => $user_id,
-//            "user_email" => $user_email
-//        ];
-//
-//        $payload = $this->base64_url_encode(json_encode($payload));
-//
-//        $signature = $this->base64_url_encode(hash_hmac('sha256', "$header.$payload", self::$signing_key, true));
-//
-//        return "$header.$payload.$signature";
-//    }
-//
-//    function base64_url_encode($text):String{
-//        return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($text));
-//    }
-//
-//
-//    function verifyToken($token): ?string
-//    {
-//
-//        if (in_array($token, self::$revokedTokens)) {
-//            return null;
-//        }
-//
-//        try {
-//            $key = new Key(self::$signing_key, 'HS256');
-//
-//            $decoded = JWT::decode($token, $key);
-//
-//            return $decoded->sub;
-//        } catch (Exception $e) {
-//            echo "Error: " . $e->getMessage();
-//            return null;
-//        }
-//    }
-//
-//
-//
+    public function requireAuth(): ?int
+    {
+        $tokenService = new ApiToken();
+        $token = get_bearer_token();
+        $userId = $tokenService->getUserFromToken($token);
+
+        if (!$userId) {
+            Response::json(['error' => 'Invalid or not existing content'], Response::UNAUTHORIZED);
+        }
+
+        if(!(new ApiToken)->verifyToken($token)){
+            Response::json(['error' => 'Invalid token'], Response::UNAUTHORIZED);
+        }
+
+        return $userId;
+    }
 
 
 }
