@@ -32,6 +32,10 @@ class NotesApiController
             Response::json(['error' => 'Invalid or not existing content'], Response::UNAUTHORIZED);
         }
 
+        if(!(new ApiToken)->verifyToken($token)){
+            Response::json(['error' => 'Invalid token'], Response::UNAUTHORIZED);
+        }
+
         $this->currentUserId = $userId;
     }
 

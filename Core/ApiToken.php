@@ -3,11 +3,11 @@
 namespace Core;
 
 use DateTimeImmutable;
+use Exception;
 
 class ApiToken
 {
     private Database $db;
-//    private static string $signing_key = "18bcfaba79f47927dd54f7facc221b79f3e7212824e1bb5ef89fc927980ee8a6"; //secret del token
     private int $timeLiveTokens;
 
     public function __construct(int $timeLiveTokens = 3600) // tiempo de vida del token en segundos, esto seria 1h
@@ -18,37 +18,12 @@ class ApiToken
 
     public function generateToken(int $userId): string
     {
-//        $header = [
-//            "alg" => "HS256",
-//            "typ" => "JWT",
-//        ];
-//        $header = $this->base64_url_encode(json_encode($header));
-//        $payload =  [
-//            "exp" => time() + 3600,
-//            "sub" => $userId,
-//        ];
-//
-//        $payload = $this->base64_url_encode(json_encode($payload));
-//
-//        $signature = $this->base64_url_encode(hash_hmac('sha256', "$header.$payload", self::$signing_key, true));
-//
-//        $token = "$header.$payload.$signature";
-//
-//
-//        $this->db->query(
-//            'INSERT INTO api_tokens (user_id, token) VALUES (:user_id, :token)',
-//            [
-//                'user_id' => $userId,
-//                'token' => $token,
-//            ]
-//        );
-//        return $token;
 
         $token = bin2hex(random_bytes(32));
 
         $expiresAt = (new DateTimeImmutable(
-            "+{$this->timeLiveTokens} seconds"))
-            ->format('Y-m-d H:i:s');
+            "+$this->timeLiveTokens seconds"))
+            ->format('U');
 
         $this->db->query(
             'INSERT INTO api_tokens (user_id, token, expires_at)
@@ -65,11 +40,8 @@ class ApiToken
 
     }
 
-//    function base64_url_encode($text):String{
-//        return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($text));
-//    }
-
-    public function getUserFromToken(?string $token){
+    public function getUserFromToken(?string $token): ?int
+    {
         if(!$token){
             return null;
         }
@@ -109,12 +81,15 @@ class ApiToken
     {
         try {
 
-            $expiration_date = $this->db->query(
-                'SELECT expires_at FROM api_tokens WHERE token = :token',
+            $row = $this->db->query(
+                'SELECT expires_at FROM api_tokens WHERE token = :token LIMIT 1',
                 ['token' => $token]
-            );
+            )->find();
 
-            if($expiration_date < date("U")){
+            $expiration_date = (string)$row['expires_at'];
+
+            if(date('U') > $expiration_date){
+
                 $this->deleteToken($token);
                 return false;
             }
