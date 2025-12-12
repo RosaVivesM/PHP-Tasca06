@@ -17,7 +17,20 @@ class UserDaoImpl implements UserDao
 
     public function updateUserById($id, array $data)
     {
+        $fields = [];
+        $params = [];
 
+        foreach ($data as $key => $value) {
+            $fields[] = "$key = ?";
+            $params[] = $value;
+        }
+
+        $params[] = $id;
+
+        return $this->db->query(
+            "UPDATE users SET ".implode(', ', $fields)." WHERE id = ?",
+            $params
+        );
     }
 
     public function findUserByEmail($email){

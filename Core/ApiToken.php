@@ -114,7 +114,7 @@ class ApiToken
                 ['token' => $token]
             );
 
-            if($expiration_date < date()){
+            if($expiration_date < date("U")){
                 $this->deleteToken($token);
                 return false;
             }

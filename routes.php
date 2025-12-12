@@ -3,6 +3,7 @@
 use Http\controllers\notes\NotesApiController;
 use Http\controllers\session\SessionController;
 use Http\controllers\notes\NotesController;
+use Http\controllers\users\UserController;
 
 $router->get('/', 'index.php');
 $router->get('/about', 'about.php');
@@ -36,3 +37,6 @@ $router->get('/api/note', [NotesApiController::class, 'show']);
 $router->post('/api/notes', [NotesApiController::class, 'store']);
 $router->put('/api/note', [NotesApiController::class, 'update']);
 $router->delete('/api/note', [NotesApiController::class, 'destroy']);
+
+//users with rest
+$router->put('/api/user', [UserController::class, 'update']);
